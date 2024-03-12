@@ -1699,19 +1699,19 @@ adolescent mouse cortex published by Saunders et al 2018. This data is
 extensive and is available at <a href="https://www.mousebrain.org" class="uri">https://www.mousebrain.org</a>. There is an online tool with
 which you can browse the data. <strong>You can do this, for instance, to
 get inspiration for your practice questions.</strong></p>
-<p>::: {.infobox .aim data-latex=“aim”}<br />
-</p>
-<div id="aim" class="section level2">
+<div id="aim" class="section level2 infobox aim">
 <h2>Aim</h2>
 <div id="process-the-scrnaseq-data-of-the-adolescent-mouse-cortex-and-identify-cell-types" class="section level3">
 <h3>Process the scRNAseq data of the adolescent mouse cortex and
 identify cell types</h3>
 <p><span class="math inline">\(~\)</span><br />
 </p>
-<p>Why? A major use of the scRNAseq is cell type identification. To
-achieve this,</p>
+<div id="why-a-major-use-of-the-scrnaseq-is-cell-type-identification.-to-achieve-this" class="section level4">
+<h4>Why? A major use of the scRNAseq is cell type identification. To
+achieve this:</h4>
+</div>
 <div id="you-first-need-to-perform-quality-control-steps-pre-processing." class="section level4">
-<h4>1. you first need to perform quality control steps
+<h4>1. You first need to perform quality control steps
 (pre-processing).</h4>
 </div>
 <div id="then-you-need-to-classify-cells-into-similar-groups.-we-call-this-process-clustering." class="section level4">
@@ -1725,14 +1725,14 @@ which summarises the information in a few dimensions.</h4>
 <div id="finally-you-can-plot-marker-genes-that-you-find-from-the-literature-to-reveal-the-cell-type-identity-of-clusters" class="section level4">
 <h4>4. Finally, you can plot marker genes that you find from the
 literature to reveal the cell type identity of clusters</h4>
-<p><span class="math inline">\(~\)</span> :::</p>
+<p><span class="math inline">\(~\)</span></p>
+</div>
+</div>
+</div>
 <p><strong>It is time for the scRNAseq analysis!</strong><br />
 The data is saved as a Seurat object. <strong>This object made specially
 for the Seurat pipeline has a lot of ‘slots’</strong> where information
 can be stored.</p>
-</div>
-</div>
-</div>
 <div id="the-dataset" class="section level2">
 <h2>2.1 The dataset</h2>
 <p>The data was downloaded and processed into a ‘Seurat object’ to
@@ -2006,8 +2006,8 @@ highest confounding factors and will be regressed out.</p>
 <pre><code>## Regressing out percent.mt, nFeature_RNA</code></pre>
 <pre><code>## Centering and scaling data matrix</code></pre>
 </div>
-<div id="dimentionality-reduction" class="section level2">
-<h2>Dimentionality reduction</h2>
+<div id="dimensionality-reduction" class="section level2">
+<h2>Dimensionality reduction</h2>
 </div>
 <div id="pca-analysis" class="section level2">
 <h2>2.7 PCA analysis</h2>
@@ -2021,7 +2021,7 @@ which summarize the variation in the dataset in an organised manner.
 Principle component 1 explains the highest variation. These are
 ‘coordinates’; cells with similar values do not differ on this
 component, while cells with different values (e.g. -5 and 20) are rather
-different. Note that hte values do not really mean something; they are
+different. Note that the values do not really mean something; they are
 all <strong>relative</strong> values. Also, the direction (+, - ) of te
 values doesn’t mean anything. Of course, cells on different end of the
 coordinate (e.g. -20, +30) are very different from each other on this
@@ -2136,7 +2136,7 @@ This includes some coding as well as online seqrch for information.</p>
 <h3>Visualise the cell type annotation of the authors!</h3>
 <p><strong>In this specific case, authors have already annotated
 different cell types.The information is stored at the ‘Class’ and
-‘Subclass’ columns of hte meta.data of the seurat object
+‘Subclass’ columns of the meta.data of the seurat object
 dataset</strong> <span class="math inline">\(~\)</span><br />
 <strong>Plot different cell types. Use can use DimPlot() and plot a
 UMAP, just like above. You can plot the information in the meta.data
@@ -2173,32 +2173,52 @@ part</strong></p>
 details of k-Means this year, thus the question may look out of context.
 But it will give you an idea of what can be expected. <strong>A</strong>
 indicated the answer</p>
-<div id="question-1-1" class="section level4">
-<h4><strong>Question 1</strong></h4>
+<div id="question-1-1" class="section level3">
+<h3><strong>Question 1</strong></h3>
 <p>Please list four important facts about the k-means algorithm on the
-following topics: i) What is it used for? &gt; <strong>A</strong>: For
-classification of data into groups/clusters</p>
-<ol start="2" style="list-style-type: lower-roman">
-<li><p>Please explain the important steps &gt; <strong>A</strong>:
-Determine the expected number of clusters. Take random points in the
-data and calculate the distance of each point to these random points to
-assign clusters. Then calculate the center of the cluster. Finally,
-repeat this process until there is no change in the centeral point,
-meaning that a stability is reached.</p></li>
-<li><p>Name one of the drawbacks &gt; <strong>A</strong>: needs
-estimation of the number of clusters beforehand. Cannot work on all
-different ‘shapes’ of data. Cannot find outliers. Does not show how
-similar each cluster is.</p></li>
-<li><p>If you run the k-means algorithm on the same data two different
-times, do you always get the same results? Why/why not? &gt;
-<strong>A</strong>: No. The process is stochastic, starts randomly and
-is repeated many times until stability is reached. The final results
-will, in most cases, be different.</p></li>
+following topics:</p>
+<ol style="list-style-type: lower-roman">
+<li>What is it used for?<br />
+</li>
 </ol>
+<blockquote>
+<p><strong>A</strong>: For classification of data into
+groups/clusters</p>
+</blockquote>
+<ol start="2" style="list-style-type: lower-roman">
+<li>Please explain the important steps<br />
+</li>
+</ol>
+<blockquote>
+<p><strong>A</strong>: Determine the expected number of clusters. Take
+random points in the data and calculate the distance of each point to
+these random points to assign clusters. Then calculate the center of the
+cluster. Finally, repeat this process until there is no change in the
+centeral point, meaning that a stability is reached.</p>
+</blockquote>
+<ol start="3" style="list-style-type: lower-roman">
+<li>Name one of the drawbacks<br />
+</li>
+</ol>
+<blockquote>
+<p><strong>A</strong>: needs estimation of the number of clusters
+beforehand. Cannot work on all different ‘shapes’ of data. Cannot find
+outliers. Does not show how similar each cluster is.</p>
+</blockquote>
+<ol start="4" style="list-style-type: lower-roman">
+<li>If you run the k-means algorithm on the same data two different
+times, do you always get the same results? Why/why not?<br />
+</li>
+</ol>
+<blockquote>
+<p><strong>A</strong>: No. The process is stochastic, starts randomly
+and is repeated many times until stability is reached. The final results
+will, in most cases, be different.</p>
+</blockquote>
 <p><br> Here is another question for you to think about: <br></p>
 </div>
-<div id="question-2-1" class="section level4">
-<h4><strong>Question 2</strong></h4>
+<div id="question-2-1" class="section level3">
+<h3><strong>Question 2</strong></h3>
 <p>Which steps of the single cell RNA sequencing analysis aims at
 getting rid of the differences in number of reads between cells (e.g. a
 cell with 1000 features and another with 5000 features)?</p>
