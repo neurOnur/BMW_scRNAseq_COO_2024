@@ -121,16 +121,16 @@ and is available at <https://www.mousebrain.org>. There is an online
 tool with which you can browse the data. **You can do this, for
 instance, to get inspiration for your practice questions.**
 
-::: {.infobox .aim data-latex="aim"} \
+::: {.infobox .aim data-latex="aim"}
 
 ## Aim
 ### Process the scRNAseq data of the adolescent mouse cortex and identify cell types
 
 $~$\
 
-Why? A major use of the scRNAseq is cell type identification. To achieve this,
+#### Why? A major use of the scRNAseq is cell type identification. To achieve this:
 
-#### 1.  you first need to perform quality control steps (pre-processing).
+#### 1.  You first need to perform quality control steps (pre-processing).
 
 #### 2.  Then, you need to 'classify cells' into similar groups. We call this process "clustering".
 
@@ -138,8 +138,9 @@ Why? A major use of the scRNAseq is cell type identification. To achieve this,
 #### 3.  To visualize the data, you will perform dimensionality reduction which summarises the information in a few dimensions.
 
 #### 4.  Finally, you can plot marker genes that you find from the literature to reveal the cell type identity of clusters 
-$~$ :::
+$~$ 
 
+:::
 
 **It is time for the scRNAseq analysis!**\
 The data is saved as a Seurat object. **This object made specially for the
@@ -370,7 +371,7 @@ confounding factors and will be regressed out.
 ```{r Seurat_scale}
 dataset <- ScaleData(object = dataset, features = hv.genes, vars.to.regress = c("percent.mt","nFeature_RNA"))
 ```
-## Dimentionality reduction
+## Dimensionality reduction
 
 ## 2.7 PCA analysis
 
@@ -387,7 +388,7 @@ dataset <- RunPCA(object = dataset, features = hv.genes, verbose = FALSE,npcs = 
 variation in the dataset in an organised manner. Principle component 1
 explains the highest variation. These are 'coordinates'; cells with
 similar values do not differ on this component, while cells with
-different values (e.g. -5 and 20) are rather different. Note that hte
+different values (e.g. -5 and 20) are rather different. Note that the
 values do not really mean something; they are all **relative** values.
 Also, the direction (+, - ) of te values doesn't mean anything. Of
 course, cells on different end of the coordinate (e.g. -20, +30) are
@@ -515,7 +516,7 @@ This includes some coding as well as online seqrch for information.
 
 **In this specific case, authors have already annotated different cell
 types.The information is stored at the 'Class' and 'Subclass' columns of
-hte meta.data of the seurat object dataset** $~$\
+the meta.data of the seurat object dataset** $~$\
 **Plot different cell types. Use can use DimPlot() and plot a UMAP, just
 like above. You can plot the information in the meta.data using the
 'group.by' option** $~$\
@@ -554,33 +555,41 @@ details of k-Means this year, thus the question may look out of context.
 But it will give you an idea of what can be expected. **A** indicated
 the answer
 
-#### **Question 1**
+### **Question 1**
 
 Please list four important facts about the k-means algorithm on the
-following topics: i) What is it used for? \> **A**: For classification
-of data into groups/clusters
+following topics: 
 
-ii) Please explain the important steps \> **A**: Determine the expected
+i) What is it used for? \
+
+> **A**: For classification of data into groups/clusters
+
+ii) Please explain the important steps \
+
+> **A**: Determine the expected
     number of clusters. Take random points in the data and calculate the
     distance of each point to these random points to assign clusters.
     Then calculate the center of the cluster. Finally, repeat this
     process until there is no change in the centeral point, meaning that
     a stability is reached.
 
-iii) Name one of the drawbacks \> **A**: needs estimation of the number
+iii) Name one of the drawbacks \
+
+> **A**: needs estimation of the number
      of clusters beforehand. Cannot work on all different 'shapes' of
      data. Cannot find outliers. Does not show how similar each cluster
      is.
 
 iv) If you run the k-means algorithm on the same data two different
-    times, do you always get the same results? Why/why not? \> **A**:
-    No. The process is stochastic, starts randomly and is repeated many
+    times, do you always get the same results? Why/why not? \
+
+> **A**: No. The process is stochastic, starts randomly and is repeated many
     times until stability is reached. The final results will, in most
     cases, be different.
 
 <br> Here is another question for you to think about: <br>
 
-#### **Question 2**
+### **Question 2**
 
 Which steps of the single cell RNA sequencing analysis aims at getting
 rid of the differences in number of reads between cells (e.g. a cell
@@ -600,3 +609,4 @@ The images for info boxes are taken from <https://www.cleanpng.com>\
 Also see:
 <https://umap-learn.readthedocs.io/en/latest/how_umap_works.html>\
 <https://www.oreilly.com/content/an-illustrated-introduction-to-the-t-sne-algorithm>
+
