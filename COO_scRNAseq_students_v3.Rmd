@@ -1,0 +1,602 @@
+---
+title: "COO scRNAseq"
+subtitle: "Single cell RNA sequencing (scRNAseq) data analysis, BMW20421 2023-2024 Bio-informatica practical, BMW, Utrecht University"
+author: "Onur BASAK, PhD"
+date: "13/3/2024"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: false
+    theme: united
+    highlight: tango
+    css: COO.css
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE, include=TRUE)
+```
+
+# Preparation
+
+## Install packages
+
+You need to do this only once!\
+The script below checks whether the listed packages are installed on
+your computer. If they are not, `install.packages()` function will
+automatically install the missing packages.
+
+```{r install_CRAN_packages, eval=FALSE, echo = TRUE}
+## First specify the packages of interest
+packages = c("devtools","hdf5r","dplyr","ggplot2","stringr",
+             "RColorBrewer","useful","readr","BiocManager")
+
+## Now load or install&load all
+# Start with Matrix, which has compatibility issues on some computers
+install.packages("Matrix")
+
+# Then the rest. This function first checks if the package listed in variable "packages" is installed. If not, it will install them
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+
+```
+
+Seurat for scRNAseq data analysis
+
+```{r install_Seurat, include=TRUE, eval=FALSE}
+# Installs version 5
+install.packages('Seurat')
+```
+
+The following is necessary for interaction with hdf5 objects, and can
+only be installed using BiocManager installer.
+
+```{r, install_rhdf5, include=TRUE, eval=FALSE}
+# You need this only once
+BiocManager::install("rhdf5")
+```
+
+# 1. Introduction
+
+In this COO, you will learn how to analyse single cell RNA sequencing
+data (scRNAseq) using the well established Seurat pipeline.
+
+This pipeline includes functions that do most of the work 'behind the
+scenes'. This makes the tool very user friendly. There is extensive
+documentation on the use of the pipeline. The following tutorial is the
+closest to what we will do today:
+<https://satijalab.org/seurat/articles/pbmc3k_tutorial.html>
+
+## Set working directory
+
+In RStudio, the working directory is set to your home directory after
+the chunk is run!\
+Thus, you may need to **run this on the console** (a seperate window at
+the the bottom-left of Rstudio). An alternative is to use the pull down
+menu (Files) at the top of the bottom-right window of RStudio. Click
+Files/More to see the option
+
+```{r setwd}
+# Don't forget to chage the path you a path on YOUR computer
+setwd("/Users/onurbasak/Library/CloudStorage/OneDrive-UMCUtrecht/1_BCRM/11 teaching/Bachelor/Bioinformatics_BMW/2024/COO/")
+
+```
+
+**Tip:** When the cursor is next to the first `"`, you can press `TAB`
+button on your keyboard. This will show the files that are in your home
+directory. It is possible that the data is stored at a different
+locations than your home directory. Then, provide a full path
+
+## Load libraries
+
+```{r load_libraries, verbose = FALSE,warning=FALSE,message=FALSE}
+# load all necessary libraries, which contain the function necessary for the scRNAseq pipeline, into the memory
+library(Seurat,verbose = FALSE)
+library(dplyr,verbose = FALSE)
+library(ggplot2,verbose = FALSE)
+library(stringr,verbose = FALSE)
+library(RColorBrewer,verbose = FALSE)
+library(useful,verbose = FALSE)
+library(readr,verbose = FALSE)
+library(hdf5r,verbose = FALSE)
+```
+
+# 2. Seurat analysis
+
+For today's tutorial, we will use the scRNAseq atlas of the adolescent
+mouse cortex published by Saunders et al 2018. This data is extensive
+and is available at <https://www.mousebrain.org>. There is an online
+tool with which you can browse the data. **You can do this, for
+instance, to get inspiration for your practice questions.**
+
+::: {.infobox .aim data-latex="aim"} \
+
+## Aim
+### Process the scRNAseq data of the adolescent mouse cortex and identify cell types
+
+$~$\
+
+Why? A major use of the scRNAseq is cell type identification. To achieve this,
+
+#### 1.  you first need to perform quality control steps (pre-processing).
+
+#### 2.  Then, you need to 'classify cells' into similar groups. We call this process "clustering".
+
+
+#### 3.  To visualize the data, you will perform dimensionality reduction which summarises the information in a few dimensions.
+
+#### 4.  Finally, you can plot marker genes that you find from the literature to reveal the cell type identity of clusters 
+$~$ :::
+
+
+**It is time for the scRNAseq analysis!**\
+The data is saved as a Seurat object. **This object made specially for the
+Seurat pipeline has a lot of 'slots'** where information can be stored.
+
+## 2.1 The dataset
+
+The data was downloaded and processed into a 'Seurat object' to prevent
+technical errors, and saved as `Linnerson_cortex_10X22.rds`.
+
+You can download them from **Blackboard** in the COO/data folder, or
+from the course website.
+
+### 2.1.1 Load the dataset
+
+```{r load_data}
+# This works only if the file is under the folder "data" in your working directory. If not, adjust it accordinly
+dataset <- readRDS(file = 'data/Linnerson_cortex_10X22.rds') 
+dataset
+```
+
+***Note:*** The object contains data from 6658 cells (samples) and 27998
+features (genes). There is 1 assay (RNA).
+
+
+### 2.1.2 Check the metadata
+
+This is where 'cell level' information is stored. For instance, the sex
+of the animal, total number of reads (RNA molecules) detected in a cell,
+any information provided by the authors etc are stored here. You will
+need to use this for Practice 5.
+
+```{r metadata}
+# metadata
+kable(head(dataset@meta.data[,1:6]),digits = 6)
+```
+
+## 2.2 Quality metrics
+
+### 2.2.1 Plot some quality metrics
+
+An important metric is the number of RNA molecules (nCount_RNA) and
+genes (nFeature_RNA) per cell. These are automatically calculated when
+the Seurat object is generated form a data matrix.
+
+```{r Seurat_QC_plot}
+# The thickness of a Violin plot shows where most data points are
+VlnPlot(object = dataset, features = c("nCount_RNA", "nFeature_RNA"), cols = "blue",
+				pt.size = .01)
+```
+
+### 2.2.2 Calculate additional QC metrics (PLEASE READ CAREFULLY!!)
+
+Start by generating QC metrics additional to the no of genes/features.
+
+**Mitochondrial** RNA is the mRNA that is generated by the mitochondrial
+genome. Normally, these constitute a small fraction of the total mRNA.
+However, **in dying or damaged cells**, while cytoplasmic/nuclear mRNA
+degrades rapidly, mitochondrial mRNA is rather well preserved. Thus, a
+high ratio of (\>10-30%) mitochondrial mRNA indicates **BAD cell quality**.
+These should be excluded. The cut-off depends on the technical details
+and personal choice.
+
+mRNA coding for the **Ribosomal** subunit proteins is abundant (not to
+be confused with rRNA, which does not code for protein but is a part of
+the ribosome complex). Usually, a high ribosomal RNA percentage
+indicates production of a lot of proteins, and is very high in dividing
+cells or some secretory cells that need to constantly produce proteins.
+However, if most of the mRNA (\>30-50%) that we detect is ribosomal, it
+means that the valuable information in this cell would be very limited
+and that we should exclude it from the analysis.
+
+```{r Seurat_calculate_ribo_mito}
+# here, we calculate the percentage of all mitochondrial genes (starting with mt) among total RNA, and place the information in the 'percent.mt' column of the meta.data
+dataset <- PercentageFeatureSet(dataset,pattern='^mt-', col.name = "percent.mt") 
+# We will do the same for all ribosomal genes (starting with Rps or Rpl)
+dataset <- PercentageFeatureSet(dataset,pattern='Rp(s|l)', col.name = "percent.ribo") 
+
+```
+
+### 2.2.3 Plot the additional quality metrics
+
+We can use the VlnPlot() function of the Seurat package to visualize QC
+metrics.
+
+```{r Seurat_plot_ribo_mito}
+ plot0 <- VlnPlot(object = dataset, features = c("percent.mt", "percent.ribo"),pt.size = 0, cols = "blue")
+plot0
+```
+
+Visualize how mito and ribo percentages change as a function of the
+number of counts.
+
+```{r plot_scatter, fig.width = 10,fig.asp = .8}
+# You can use any column from the metadata to plot onthe x or y axis
+plot1 <- FeatureScatter(dataset, feature1 = "nCount_RNA", feature2 = "percent.mt",pt.size = 2, cols = "blue")
+plot2 <- FeatureScatter(dataset, feature1 = "nCount_RNA", feature2 = "percent.ribo",pt.size = 2, cols = "blue")
+plot3 <- FeatureScatter(dataset, feature1 = "nCount_RNA", feature2 = "nFeature_RNA",pt.size = 2, cols = "blue")
+plot_null <- ggplot() + theme_void()
+(plot1 + plot2) / (plot3 + plot_null)
+```
+
+::: {.infobox .question data-latex="question"}
+## Question 1
+
+**What is the relationship between total number of RNA per cell
+(nCounts) and**\
+**i) mitochondrial RNA percentage?**\
+**ii) ribosomal RNA percentage?**\
+**ii) number of features?** $~$
+:::
+
+
+::: {.infobox .practice data-latex="practice"}
+## Practice 1
+
+**We do not want to have low quality cells in our data. Looking at the
+plot, determine which cells to get rid of.**
+
+**TIP: See the explanation of QC metrics above!** $~$
+:::
+
+$~$
+
+Use subset() to fetch the cells that fit in your description. This fill
+get rid of any cells that are above your threshold. Check `dataset` to
+see how many cells are left. If this is too little, you may want to
+relax your threshold.
+
+```{r Seurat_filter_practice_1, eval =FALSE, include=TRUE}
+cutoff_mito = ##ENTER A VALUE HERE##
+cutoff_ribo = ##ENTER A VALUE HERE###
+dataset <- subset(x = dataset, subset = percent.mt < cutoff_mito & percent.ribo < cutoff_ribo)
+```
+
+```{r Seurat_filter_practice_1_run, eval =TRUE, include=FALSE}
+cutoff_mito = 8
+cutoff_ribo = 10
+dataset <- subset(x = dataset, subset = percent.mt < cutoff_mito & percent.ribo < cutoff_ribo)
+dataset
+```
+
+
+## 2.4 Normalise
+
+In Seurat, standard pre-processing workflow is replaced by a single
+command. However, it is good to see this part to learn each step. 
+
+First, we will normalize the data. This is to get rid of the differences in
+total RNA counts between cells. In other words, we will equalize the
+total count number in each cell to a fixed number (e.g. 10000 RNA
+molecules per cell).
+
+**Why do we need this?** You may have huge differences in total RNA between
+cells (e.g. 1000 versus 12500), which will cause technical differences
+that you do not want to include in your dataset. Log normalization
+(`method = "LogNormalize"`) means that we first log transform the data,
+then make sure that the total number of reads in each cells is
+approxamely the same (as `scale.factor`, which is 10000 by default).
+
+```{r Seurat_normalise}
+# log normalisation
+dataset <- NormalizeData(object = dataset, normalization.method = "LogNormalize", scale.factor = 10000)
+```
+
+## 2.5 Detection of variable genes across the single cells
+
+We want to find out 'informative genes' that will explain biological
+differences to use in some of the downstream applications. If a gene is
+expressed everywhere, that doesn't tell us much. **However, if a gene is
+expressed in only a subset of cells, this will cause 'variation'.**. 
+
+We can detect these genes using `FindVariableFeatures()` function.
+
+```{r Seurat_FindVariableFeatures}
+## Here, we select the top 1,000 highly variable genes (Hvg) for downstream analysis.
+dataset <- FindVariableFeatures(object = dataset, selection.method = 'mean.var.plot', mean.cutoff = c(0.0125, 3), dispersion.cutoff = c(0.5, Inf))
+length(x = VariableFeatures(object = dataset)) #3084
+
+```
+
+Visualize top 10 most variable genes.
+
+```{r Seurat_plot_variablefeatures, fig.width = 10,fig.asp = .5}
+# Identify the 10 most highly variable genes.
+top10 <- head(VariableFeatures(dataset), 10)
+
+## Plot
+# plot variable features with and without labels
+plot1 <- VariableFeaturePlot(dataset)
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+plot2
+```
+
+***Note:Dispersion indicates variation, while red color shows
+'significantly variable' genes***
+
+Print the top 1000 highly variable genes.
+
+```{r Seurat_hvgenes}
+hv.genes <- head(rownames(HVFInfo(object = dataset)), 1000)
+head(hv.genes,n=100) # list the first 100
+```
+
+## 2.6 Scale the data and get rid of the confounders
+
+Scaling (standardization) is the process in which we convert the
+expression values of a gene into "standard deviation from the mean". For
+instance, **if a gene is expressed at the same level in a cell as its
+average in the dataset, it will have a value of 0. If it is "1 standard
+deviation" higher, then it will be +1.**
+
+We will only take the highly variable genes (`hv.genes`) to scale and
+use in downstream dimensionality reduction.
+
+We can also get rid of the confounding factors at this point. These
+factors introduce 'technical noise' to the data. *For instance, the
+number of reads per cell can influence the amount of information in a
+cell and make it seem different from another cell with low RNA levels,
+even though they are similar cells.*
+
+We will use the `ScaleData()` function of the Seurat package. The
+confounding factors can be discarded using `vars.to.regress`. 
+
+Mitochondrial gene percentage and number of features (genes) are the highest 
+confounding factors and will be regressed out.
+
+```{r Seurat_scale}
+dataset <- ScaleData(object = dataset, features = hv.genes, vars.to.regress = c("percent.mt","nFeature_RNA"))
+```
+## Dimentionality reduction
+
+## 2.7 PCA analysis
+
+### 2.7.1 Perform PCA
+
+Performing Dimensionality reduction in Seurat is very simple!
+
+```{r Seurat_PCA_calculate}
+# Calculate the principle components
+dataset <- RunPCA(object = dataset, features = hv.genes, verbose = FALSE,npcs = 50)
+```
+
+**Done!** We have calculated 50 principle components, which summarize the
+variation in the dataset in an organised manner. Principle component 1
+explains the highest variation. These are 'coordinates'; cells with
+similar values do not differ on this component, while cells with
+different values (e.g. -5 and 20) are rather different. Note that hte
+values do not really mean something; they are all **relative** values.
+Also, the direction (+, - ) of te values doesn't mean anything. Of
+course, cells on different end of the coordinate (e.g. -20, +30) are
+very different from each other on this coordinate.
+
+### 2.7.2 Plot PCA results
+
+```{r Seurat_PCA_plot}
+plot1 <- DimPlot(object = dataset, reduction = 'pca',dims = c(1,2))
+plot1
+```
+
+Does your PC different than what you see on this html file? This is
+likely because we used different cut-offs or settings. It is totally
+normal to have different plots (e.g. inverted).
+
+
+**Heatmaps** We can use an integrated function of Seurat to plot
+heatmaps to visualize genes that drive different principle components.
+Here, each row is one of the top genes that cause variation on this
+component. Each column is a cell. Yellow color means the component has a
+high value, while purple means there is low value.
+
+```{r Seurat_PCA_heatmaps, fig.width=10,fig.height=5}
+PCHeatmap(dataset,dims = 1:2,ncol =2)
+```
+
+::: {.infobox .question data-latex="question"}
+## Question 2
+
+**What do the genes in principle components tell us?**\
+$~$
+:::
+
+
+### 2.7.3 Featureplots
+
+**Plot some of these genes on PCA plots using the FeaturePlot()
+function** To see how both the expression level of a gene and how cells
+expressing this gene are distributed distributed along different PCs, we
+can use the `FeaturePlot()` function. 
+
+<p>**Selecting genes**</p>
+
+**PC1**: For me, Aldoc and Mog genes are particularly intriguing. This
+is because of the biological knowledge that Aldoc is very high in
+astrocytes and Mog is very high in oligodendrocytes. Their presence on
+this heatmap suggest that this axis may explain (at least part of) the
+differences between astrocytes and oligodendrocytes (or between these
+and the rest).
+
+**PC2**: Calb1 (a neuronal gene) and Slc1a3 (an astrocyte gene) look
+interesting.
+
+We can check this by plotting them using the `FeaturePlot` function:
+
+```{r Seurat_FeaturePlot_PC_genes_dim1_2, fig.width=8,fig.height=6}
+plot_f1 <- FeaturePlot(dataset,features = c('Aldoc','Mog'),reduction = 'pca',dims = c(1,2),cols = c('gray','blue','red'))
+plot_f2 <- FeaturePlot(dataset,features = c('Calb1','Slc1a3'),reduction = 'pca',dims = c(1,2),cols = c('gray','blue','red'))
+plot_f1 / plot_f2
+
+```
+
+
+::: {.infobox .practice data-latex="practice"}
+## Practice 2
+
+**Plot principle components 1, 5, 10, 20, 30 and 40 using PCHeatmap
+function.**\
+- What differences do you see?\
+- Would you include all principle components for downsteram analysis?
+Why/why not? $~$
+:::
+
+$~$
+
+
+## 2.8 Cluster analysis
+
+We will use a graph-based clustering algorithm discussed at the lecture.
+
+```{r Seurat_findNeighbours}
+##  We need to build a neighborhood graph. 
+# One could say that cells closest to each other reside in a neighborhood.
+dataset <- FindNeighbors(object = dataset, dims = 1:20) 
+```
+
+Find clusters using the louvain algorithm
+
+```{r Seurat_cluster_louvain, fig.width = 12}
+dataset <- FindClusters(object = dataset, resolution = 0.6) # changing the resolution will change the size/number of clusters! c(0.6, 0.8, 1)
+```
+
+## 2.9 UMAP 
+
+We will use the top PCs to calculate the umap coordinates. You
+can change the number of PCs based on your observation in Practice 2. 
+When we plot umap, the fault is to plot the results of clustering.
+
+```{r Seurat_umap_calculate_plot}
+# calculate UMAP coordinates
+dataset <- RunUMAP(object = dataset, reduction = "pca", dims = 1:20, verbose = FALSE)
+# plot
+DimPlot(dataset, reduction = 'umap')
+```
+
+::: {.infobox .question data-latex="question"}
+## Question 3
+
+**Compare pca and umap...  Why is there a difference?** $~$
+:::
+  
+
+::: {.infobox .practice data-latex="practice"}
+
+# 3. Self Practice
+Unlike the previous questions and practices, you will need to do some work here.\
+This includes some coding as well as online seqrch for information.
+
+::: {.infobox .practice data-latex="practice"}
+
+## Practice 3
+
+### Visualise the cell type annotation of the authors!
+
+**In this specific case, authors have already annotated different cell
+types.The information is stored at the 'Class' and 'Subclass' columns of
+hte meta.data of the seurat object dataset** $~$\
+**Plot different cell types. Use can use DimPlot() and plot a UMAP, just
+like above. You can plot the information in the meta.data using the
+'group.by' option** $~$\
+**What do you see? How do these compare to the clusters that you have
+identified?** $~$\
+
+:::
+
+::: {.infobox .practice data-latex="practice"}
+
+## Practice 4
+
+### Identify cell types!
+
+**Check the top hvgenes that we plotted above. Some of these are well known markers for cell types** $~$\
+
+**Alternatively, use google or pubmed to find marker genes for neurons, inhibitory
+neurons, astrocytes and oligodendrocytes. Starting tip: Rbfox3 (NeuN protein) marks neurons.** $~$\
+
+**Plot the expression of these marker genes using the VlnPLot() or FeaturePLot()
+function** $~$
+
+:::
+
+
+::: {.endbox data-latex="endbox"}
+
+#### **END OF THE PRACTICAL!**
+**If you have time, please have a look at the following part**
+:::
+
+# 4. Example questions
+
+The following is a question from teh last year. We didn't go into
+details of k-Means this year, thus the question may look out of context.
+But it will give you an idea of what can be expected. **A** indicated
+the answer
+
+#### **Question 1**
+
+Please list four important facts about the k-means algorithm on the
+following topics: i) What is it used for? \> **A**: For classification
+of data into groups/clusters
+
+ii) Please explain the important steps \> **A**: Determine the expected
+    number of clusters. Take random points in the data and calculate the
+    distance of each point to these random points to assign clusters.
+    Then calculate the center of the cluster. Finally, repeat this
+    process until there is no change in the centeral point, meaning that
+    a stability is reached.
+
+iii) Name one of the drawbacks \> **A**: needs estimation of the number
+     of clusters beforehand. Cannot work on all different 'shapes' of
+     data. Cannot find outliers. Does not show how similar each cluster
+     is.
+
+iv) If you run the k-means algorithm on the same data two different
+    times, do you always get the same results? Why/why not? \> **A**:
+    No. The process is stochastic, starts randomly and is repeated many
+    times until stability is reached. The final results will, in most
+    cases, be different.
+
+<br> Here is another question for you to think about: <br>
+
+#### **Question 2**
+
+Which steps of the single cell RNA sequencing analysis aims at getting
+rid of the differences in number of reads between cells (e.g. a cell
+with 1000 features and another with 5000 features)?
+
+1)  Scaling
+2)  Normalization
+3)  Regression
+4)  Dimensionality reduction
+5)  Clustering
+
+> **A**: I wont provide the answer for this one
+
+# 5. Acknowledgements
+
+The images for info boxes are taken from <https://www.cleanpng.com>\
+Also see:
+<https://umap-learn.readthedocs.io/en/latest/how_umap_works.html>\
+<https://www.oreilly.com/content/an-illustrated-introduction-to-the-t-sne-algorithm>
